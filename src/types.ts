@@ -111,6 +111,16 @@ export interface TGAOptions {
    * Leave this unset unless you are managing sessions server-side.
    */
   sessionId?: string;
+
+  /**
+   * When `true` (the default), the SDK automatically collects visitor
+   * context (OS, browser, language, screen, timezone, device type) and
+   * includes it as `$`-prefixed properties on every event.
+   *
+   * Set to `false` to disable automatic context collection.
+   * @default true
+   */
+  collectContext?: boolean;
 }
 
 // ── Internal payload shapes ──────────────────────────────────────────────────
@@ -149,4 +159,6 @@ export interface PageviewPayload {
   referrer: string | null;
   /** ISO-8601 timestamp. */
   timestamp: string;
+  /** Global and context properties. */
+  properties?: EventProperties;
 }

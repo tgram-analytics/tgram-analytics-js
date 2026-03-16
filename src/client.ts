@@ -17,6 +17,7 @@ import { clearSessionId, getOrCreateSessionId } from "./session.js";
 import { installSpaListeners } from "./spa.js";
 import { send } from "./transport.js";
 import type { EventProperties, PageviewPayload, TGAOptions, TrackPayload } from "./types.js";
+import { collectContext } from "./context.js";
 import { extractUtmParams } from "./utm.js";
 
 export class TGAClient {
@@ -115,6 +116,15 @@ export class TGAClient {
       this.globalProperties = { ...this.globalProperties, ...utms };
     }
 
+    // ── Visitor context ─────────────────────────────────────────────────────
+    // Collect device, browser, and environment information once per session.
+    if (options.collectContext !== false) {
+      const ctx = collectContext();
+      if (Object.keys(ctx).length > 0) {
+        this.globalProperties = { ...this.globalProperties, ...ctx };
+      }
+    }
+
     // ── Auto-pageview + SPA listeners ──────────────────────────────────────
     const autoPageview = options.autoPageview !== false;
     if (autoPageview && typeof window !== "undefined") {
@@ -204,6 +214,7 @@ export class TGAClient {
       url: resolvedUrl,
       referrer: resolvedReferrer,
       timestamp: new Date().toISOString(),
+      properties: { ...this.globalProperties },
     };
 
     this.dispatch("/api/v1/pageview", payload);

@@ -194,6 +194,46 @@ describe("TGAClient.pageview()", () => {
   });
 });
 
+describe("TGAClient — visitor context", () => {
+  it("includes context properties in track() payload", () => {
+    const client = makeClient();
+    client.track("test");
+    const props = lastFetchBody().properties as Record<string, unknown>;
+    expect(props.$os).toBe("macOS");
+    expect(props.$browser).toBe("Chrome");
+    expect(props.$language).toBe("en-US");
+    expect(props.$screen).toBe("1920x1080");
+    expect(props.$viewport).toBe("1440x900");
+    expect(props.$timezone).toBeDefined();
+    expect(props.$device_type).toBe("desktop");
+  });
+
+  it("includes context properties in pageview() payload", () => {
+    const client = makeClient();
+    client.pageview("/test");
+    const body = lastFetchBody();
+    const props = body.properties as Record<string, unknown>;
+    expect(props.$os).toBe("macOS");
+    expect(props.$browser).toBe("Chrome");
+  });
+
+  it("does not collect context when collectContext is false", () => {
+    const client = new TGAClient();
+    client.init(API_KEY, { serverUrl: SERVER, autoPageview: false, collectContext: false });
+    client.track("test");
+    const props = lastFetchBody().properties as Record<string, unknown>;
+    expect(props.$os).toBeUndefined();
+    expect(props.$browser).toBeUndefined();
+  });
+
+  it("per-event properties override context", () => {
+    const client = makeClient();
+    client.track("test", { $browser: "Custom" });
+    const props = lastFetchBody().properties as Record<string, unknown>;
+    expect(props.$browser).toBe("Custom");
+  });
+});
+
 describe("TGAClient.identify()", () => {
   it("merges new properties into existing ones", () => {
     const client = makeClient();
