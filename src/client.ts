@@ -88,6 +88,15 @@ export class TGAClient {
     this.apiKey = apiKey;
     // Strip trailing slash so we can always safely append endpoint paths.
     this.serverUrl = options.serverUrl.replace(/\/+$/, "");
+
+    // Warn when the server URL uses plain HTTP. All analytics data (including
+    // the API key) is transmitted in the request body — use HTTPS in production.
+    if (this.serverUrl.startsWith("http://")) {
+      console.warn(
+        "[tgram-analytics] serverUrl uses http:// — all data including your API key " +
+          "will be sent in cleartext. Use https:// in production.",
+      );
+    }
     this.sessionId = getOrCreateSessionId(options.sessionId);
     this.initialized = true;
 
