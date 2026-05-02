@@ -1,6 +1,6 @@
 # tgram-analytics JS SDK
 
-Lightweight, privacy-first analytics SDK for [tgram-analytics](https://github.com/tg-analytics/server).
+Lightweight, privacy-first analytics SDK for [tgram-analytics](https://github.com/tgram-analytics/server).
 
 - **Zero dependencies** — only browser APIs
 - **< 2 KB gzipped** — won't slow your page down
@@ -14,8 +14,10 @@ Lightweight, privacy-first analytics SDK for [tgram-analytics](https://github.co
 
 Before using this SDK you need:
 
-1. A running tgram-analytics server. See the [server repo](https://github.com/tg-analytics/server) for setup instructions.
+1. A running tgram-analytics server. See the [server repo](https://github.com/tgram-analytics/server) for setup instructions.
 2. A project API key. Create one by sending `/add myapp.com` to the Telegram bot. The bot replies with a key that starts with `proj_`.
+
+Get a free `proj_` API key from [@MyTelegramAnalyticsBot](https://t.me/MyTelegramAnalyticsBot) on Telegram (1 project free), or [self-host the server](https://github.com/tgram-analytics/server) and create keys via your own bot.
 
 ---
 
@@ -287,8 +289,8 @@ Contributions are welcome! Please open an issue or pull request on GitHub.
 ### Development setup
 
 ```bash
-git clone https://github.com/tg-analytics/sdk-js
-cd sdk-js
+git clone https://github.com/tgram-analytics/tgram-analytics-js
+cd tgram-analytics-js
 npm install
 ```
 
@@ -315,3 +317,13 @@ npm install
 ## License
 
 MIT — see [LICENSE](./LICENSE).
+
+---
+
+## Links
+
+- Website: <https://tgram-analytics.com>
+- Server (API): <https://github.com/tgram-analytics/server>
+- JS SDK: <https://github.com/tgram-analytics/tgram-analytics-js>
+- Python SDK: <https://github.com/tgram-analytics/tgram-analytics-py>
+- Flutter SDK: <https://github.com/tgram-analytics/tgram-analytics-flutter>
