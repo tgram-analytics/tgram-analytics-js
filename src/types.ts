@@ -124,41 +124,19 @@ export interface TGAOptions {
 }
 
 // ── Internal payload shapes ──────────────────────────────────────────────────
-// These must match the server's Pydantic schemas exactly.
-// See server/app/schemas/event.py for the authoritative field names.
+// Generated from the server's OpenAPI spec (openapi.json → src/generated/api.ts).
+// Run `npm run generate:api` to regenerate after server schema changes.
+
+import type { components } from "./generated/api.js";
 
 /**
  * Request body sent to `POST /api/v1/track`.
  * @internal
  */
-export interface TrackPayload {
-  /** Project API key (starts with "proj_"). */
-  api_key: string;
-  /** Name of the event, e.g. "purchase" or "signup". */
-  event_name: string;
-  /** SDK-generated session ID (UUID v4). */
-  session_id: string;
-  /** Arbitrary event metadata. */
-  properties: EventProperties;
-  /** ISO-8601 timestamp of when the event occurred on the client. */
-  timestamp: string;
-}
+export type TrackPayload = components["schemas"]["TrackEventRequest"];
 
 /**
  * Request body sent to `POST /api/v1/pageview`.
  * @internal
  */
-export interface PageviewPayload {
-  /** Project API key (starts with "proj_"). */
-  api_key: string;
-  /** SDK-generated session ID (UUID v4). */
-  session_id: string;
-  /** Page path or URL, e.g. "/pricing" or "/blog/post-1". */
-  url: string;
-  /** Referring URL, or null when there is no referrer. */
-  referrer: string | null;
-  /** ISO-8601 timestamp. */
-  timestamp: string;
-  /** Global and context properties. */
-  properties?: EventProperties;
-}
+export type PageviewPayload = components["schemas"]["PageviewRequest"];
