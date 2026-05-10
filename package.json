@@ -1,6 +1,6 @@
 {
   "name": "tgram-analytics",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Lightweight, privacy-first JS/TS SDK for tgram-analytics",
   "keywords": [
     "analytics",
