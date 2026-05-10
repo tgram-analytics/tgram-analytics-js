@@ -117,13 +117,13 @@ describe("collectContext", () => {
     const ctx = collectContext();
     expect(ctx.$device_type).toBe("tablet");
 
-    delete (window as Record<string, unknown>).ontouchstart;
+    (window as Record<string, unknown>).ontouchstart = undefined;
   });
 
   it("handles missing Intl gracefully", () => {
     const origIntl = globalThis.Intl;
     // @ts-expect-error -- intentionally removing Intl for test
-    delete globalThis.Intl;
+    globalThis.Intl = undefined;
 
     const ctx = collectContext();
     expect(ctx).not.toHaveProperty("$timezone");
