@@ -8,6 +8,14 @@
     "self-hosted",
     "telegram"
   ],
+  "homepage": "https://tgram-analytics.com",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tgram-analytics/tgram-analytics-js.git"
+  },
+  "bugs": {
+    "url": "https://github.com/tgram-analytics/tgram-analytics-js/issues"
+  },
   "license": "MIT",
   "type": "module",
   "main": "./dist/index.cjs",
