@@ -36,14 +36,14 @@ export type EventPropertyValue = EventPropertyScalar | EventPropertyScalar[];
  * @example Array-valued property (e.g. multi-select onboarding answer)
  * const props: EventProperties = {
  *   role: "creator",
- *   interest_set: ["vertical_to_horizontal", "unsure"], // <-- array of strings
+ *   interest: ["vertical_to_horizontal", "unsure"], // <-- array of strings
  * };
  *
  * @remarks
- * Keys ending in `_set` are sorted alphabetically at write time by the
- * server, which makes `GROUP BY properties->'interest_set'`-style "most
- * common combos" queries trivial. Other array properties are stored in
- * the order you sent them.
+ * The server sorts every array property at write time so
+ * `GROUP BY properties->'foo'`-style "most common combos" queries are
+ * trivial — no naming convention needed. If insertion order matters for
+ * some property, serialize the array to a string instead.
  */
 export type EventProperties = Record<string, EventPropertyValue>;
 
