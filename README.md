@@ -245,7 +245,7 @@ Properties accept **arrays of scalars** in addition to single scalars — useful
 TGA.track("onboarding_completed", {
   role: "creator",
   frequency: "weekly",
-  interest_set: ["vertical_to_horizontal", "unsure"], // <-- array
+  interest: ["vertical_to_horizontal", "unsure"], // <-- array, name it whatever you want
 });
 ```
 
@@ -255,13 +255,13 @@ The server stores the array natively in the JSONB `properties` column, so a sing
 -- 1. Per-element counts (e.g. a pie chart of how often each interest is picked):
 SELECT elem, count(*) AS n
 FROM events,
-     jsonb_array_elements_text(properties->'interest_set') AS elem
+     jsonb_array_elements_text(properties->'interest') AS elem
 WHERE name = 'onboarding_completed'
 GROUP BY elem
 ORDER BY n DESC;
 
 -- 2. Most common combinations of selected values:
-SELECT properties->'interest_set' AS combo, count(*) AS n
+SELECT properties->'interest' AS combo, count(*) AS n
 FROM events
 WHERE name = 'onboarding_completed'
 GROUP BY combo
@@ -271,16 +271,16 @@ LIMIT 20;
 
 ### Sort behaviour
 
-The server applies **write-time sorting** to array properties whose key ends in `_set` (e.g. `interest_set`, `feature_flags_set`). This makes the "combo" query above a trivial `GROUP BY` — `["a", "b"]` and `["b", "a"]` land in the same bucket.
+The server **sorts every array property at write time** — no naming convention required. `["a", "b"]` and `["b", "a"]` land in the same JSONB value, so the "combo" query above is a trivial `GROUP BY` without read-time normalisation.
 
-Other array properties are stored in the order you sent them, so any insertion-ordered list (e.g. `recent_searches: ["pizza", "pasta"]`) keeps its meaning.
+> **Order-sensitive use cases.** Because every array is sorted, a list like `recent_searches: ["pizza", "pasta"]` loses its original order on the wire. If insertion order matters, serialize to a string (`"pizza,pasta"`) or use an object with positional keys. Heterogeneous arrays (mixed types that can't be ordered, e.g. `[1, "a"]`) fall back to insertion order automatically.
 
 ### Allowed value shapes
 
 | Shape                          | Allowed? | Example                               |
 |--------------------------------|----------|---------------------------------------|
 | Scalar                         | ✅       | `{ amount: 49 }`                      |
-| Array of strings               | ✅       | `{ tags_set: ["a", "b"] }`            |
+| Array of strings               | ✅       | `{ tags: ["a", "b"] }`                |
 | Array of numbers / booleans    | ✅       | `{ scores: [1, 2, 3] }`               |
 | Heterogeneous array of scalars | ✅       | `{ misc: ["a", 1, true] }`            |
 | Nested object                  | ❌       | `{ user: { id: 1 } }`                 |
