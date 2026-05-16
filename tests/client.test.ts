@@ -242,6 +242,67 @@ describe("TGAClient.identify()", () => {
     client.track("test");
     expect(lastFetchBody().properties).toMatchObject({ plan: "pro", locale: "en-US" });
   });
+
+  it("accepts array-valued properties", () => {
+    const client = makeClient();
+    client.identify({ ab_variants: ["A", "B"] });
+    client.track("test");
+    expect((lastFetchBody().properties as Record<string, unknown>).ab_variants).toEqual(["A", "B"]);
+  });
+
+  it("throws on invalid array elements", () => {
+    const client = makeClient();
+    // biome-ignore lint/suspicious/noExplicitAny: testing runtime guard
+    expect(() => client.identify({ bad: [{}] as any })).toThrow(/bad/);
+  });
+});
+
+describe("TGAClient.track() — array properties", () => {
+  it("serialises a string array unchanged in the request body", () => {
+    const client = makeClient();
+    client.track("onboarding_completed", {
+      role: "creator",
+      interest: ["vertical_to_horizontal", "unsure"],
+    });
+    const props = lastFetchBody().properties as Record<string, unknown>;
+    expect(props.role).toBe("creator");
+    expect(props.interest).toEqual(["vertical_to_horizontal", "unsure"]);
+  });
+
+  it("preserves array order in the SDK (server is responsible for sort)", () => {
+    const client = makeClient();
+    client.track("e", { tags: ["b", "a", "c"] });
+    expect((lastFetchBody().properties as Record<string, unknown>).tags).toEqual(["b", "a", "c"]);
+  });
+
+  it("serialises mixed-type arrays of scalars", () => {
+    const client = makeClient();
+    client.track("e", { items: ["a", 1, true, null] });
+    expect((lastFetchBody().properties as Record<string, unknown>).items).toEqual([
+      "a",
+      1,
+      true,
+      null,
+    ]);
+  });
+
+  it("rejects arrays containing objects with a useful error", () => {
+    const client = makeClient();
+    // biome-ignore lint/suspicious/noExplicitAny: testing runtime guard
+    expect(() => client.track("e", { tags: [{}] as any })).toThrow(/tags/);
+  });
+
+  it("rejects nested arrays with a useful error", () => {
+    const client = makeClient();
+    // biome-ignore lint/suspicious/noExplicitAny: testing runtime guard
+    expect(() => client.track("e", { tags: [[1]] as any })).toThrow(/tags/);
+  });
+
+  it("rejects arrays containing undefined with a useful error", () => {
+    const client = makeClient();
+    // biome-ignore lint/suspicious/noExplicitAny: testing runtime guard
+    expect(() => client.track("e", { tags: [undefined as any] })).toThrow(/tags/);
+  });
 });
 
 describe("TGAClient.opt()", () => {

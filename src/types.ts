@@ -9,15 +9,43 @@
 // ── Public API types ─────────────────────────────────────────────────────────
 
 /**
+ * A single JSON-safe scalar — the building block of {@link EventProperties}.
+ */
+export type EventPropertyScalar = string | number | boolean | null;
+
+/**
+ * The value side of an entry in {@link EventProperties}.
+ *
+ * Either a scalar primitive or an array of scalars. Nested arrays and
+ * object-valued properties are intentionally not supported so the JSONB
+ * column stays cheap to query (a per-element pie chart is one
+ * `jsonb_array_elements_text` call away).
+ */
+export type EventPropertyValue = EventPropertyScalar | EventPropertyScalar[];
+
+/**
  * Arbitrary key-value properties attached to events.
  *
- * Values must be JSON-serialisable primitives so they can be stored in
- * the server's JSONB `properties` column without transformation.
+ * Values must be JSON-serialisable primitives — or arrays of such
+ * primitives — so they can be stored in the server's JSONB `properties`
+ * column without transformation.
  *
- * @example
+ * @example Scalar properties
  * const props: EventProperties = { amount: 49, plan: "pro", trial: false };
+ *
+ * @example Array-valued property (e.g. multi-select onboarding answer)
+ * const props: EventProperties = {
+ *   role: "creator",
+ *   interest_set: ["vertical_to_horizontal", "unsure"], // <-- array of strings
+ * };
+ *
+ * @remarks
+ * Keys ending in `_set` are sorted alphabetically at write time by the
+ * server, which makes `GROUP BY properties->'interest_set'`-style "most
+ * common combos" queries trivial. Other array properties are stored in
+ * the order you sent them.
  */
-export type EventProperties = Record<string, string | number | boolean | null>;
+export type EventProperties = Record<string, EventPropertyValue>;
 
 /**
  * Fine-grained options for the event batching queue.
