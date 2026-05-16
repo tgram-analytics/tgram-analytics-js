@@ -38,8 +38,16 @@ Object.defineProperty(globalThis, "screen", {
   configurable: true,
 });
 
-Object.defineProperty(globalThis, "innerWidth", { value: 1440, writable: true, configurable: true });
-Object.defineProperty(globalThis, "innerHeight", { value: 900, writable: true, configurable: true });
+Object.defineProperty(globalThis, "innerWidth", {
+  value: 1440,
+  writable: true,
+  configurable: true,
+});
+Object.defineProperty(globalThis, "innerHeight", {
+  value: 900,
+  writable: true,
+  configurable: true,
+});
 
 // ── Per-test reset ────────────────────────────────────────────────────────────
 
