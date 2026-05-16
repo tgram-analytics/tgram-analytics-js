@@ -101,7 +101,7 @@ TGA.track("signup"); // properties are optional
 | Parameter    | Type               | Description |
 |--------------|--------------------|-------------|
 | `eventName`  | `string`           | Event identifier, e.g. `"purchase"`, `"signup"`. |
-| `properties` | `EventProperties?` | Optional key-value metadata. Values must be `string`, `number`, `boolean`, or `null`. |
+| `properties` | `EventProperties?` | Optional key-value metadata. Values must be `string`, `number`, `boolean`, `null`, or an **array of those scalars**. See [Multi-value properties](#multi-value-properties). |
 
 ---
 
@@ -234,6 +234,60 @@ The queue flushes automatically when:
 - `maxWait` milliseconds have passed since the first event in the batch.
 - The user navigates away from the page (`visibilitychange`, `pagehide`).
 - You call `TGA.flush()` manually.
+
+---
+
+## Multi-value properties
+
+Properties accept **arrays of scalars** in addition to single scalars — useful for multi-select inputs, A/B variant memberships, or any set-style attribute that would otherwise be lossy to flatten into one column.
+
+```ts
+TGA.track("onboarding_completed", {
+  role: "creator",
+  frequency: "weekly",
+  interest_set: ["vertical_to_horizontal", "unsure"], // <-- array
+});
+```
+
+The server stores the array natively in the JSONB `properties` column, so a single event powers two complementary dashboards:
+
+```sql
+-- 1. Per-element counts (e.g. a pie chart of how often each interest is picked):
+SELECT elem, count(*) AS n
+FROM events,
+     jsonb_array_elements_text(properties->'interest_set') AS elem
+WHERE name = 'onboarding_completed'
+GROUP BY elem
+ORDER BY n DESC;
+
+-- 2. Most common combinations of selected values:
+SELECT properties->'interest_set' AS combo, count(*) AS n
+FROM events
+WHERE name = 'onboarding_completed'
+GROUP BY combo
+ORDER BY n DESC
+LIMIT 20;
+```
+
+### Sort behaviour
+
+The server applies **write-time sorting** to array properties whose key ends in `_set` (e.g. `interest_set`, `feature_flags_set`). This makes the "combo" query above a trivial `GROUP BY` — `["a", "b"]` and `["b", "a"]` land in the same bucket.
+
+Other array properties are stored in the order you sent them, so any insertion-ordered list (e.g. `recent_searches: ["pizza", "pasta"]`) keeps its meaning.
+
+### Allowed value shapes
+
+| Shape                          | Allowed? | Example                               |
+|--------------------------------|----------|---------------------------------------|
+| Scalar                         | ✅       | `{ amount: 49 }`                      |
+| Array of strings               | ✅       | `{ tags_set: ["a", "b"] }`            |
+| Array of numbers / booleans    | ✅       | `{ scores: [1, 2, 3] }`               |
+| Heterogeneous array of scalars | ✅       | `{ misc: ["a", 1, true] }`            |
+| Nested object                  | ❌       | `{ user: { id: 1 } }`                 |
+| Nested array                   | ❌       | `{ matrix: [[1, 2]] }`                |
+| `undefined` / `NaN` / `Infinity` | ❌     | `{ x: undefined }`                    |
+
+Bad shapes throw a clear error synchronously from `track()` / `identify()` so they surface in dev rather than silently corrupting your data.
 
 ---
 

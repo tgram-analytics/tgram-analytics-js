@@ -12,13 +12,14 @@
  * TGA.track("purchase", { amount: 49 });
  */
 
+import { collectContext } from "./context.js";
 import { EventQueue, type QueueConfig } from "./queue.js";
 import { clearSessionId, getOrCreateSessionId } from "./session.js";
 import { installSpaListeners } from "./spa.js";
 import { send } from "./transport.js";
 import type { EventProperties, PageviewPayload, TGAOptions, TrackPayload } from "./types.js";
-import { collectContext } from "./context.js";
 import { extractUtmParams } from "./utm.js";
+import { validateProperties } from "./validate.js";
 
 export class TGAClient {
   private apiKey = "";
@@ -165,16 +166,32 @@ export class TGAClient {
    *                     `"signup"`, `"button_click"`. Use snake_case for
    *                     consistency with the server's query patterns.
    * @param properties - Optional key-value metadata for this specific event.
-   *                     Values must be strings, numbers, booleans, or `null`.
+   *                     Values must be strings, numbers, booleans, `null`, or
+   *                     arrays of those scalars. Nested arrays and object
+   *                     values are rejected synchronously.
+   *
+   * @throws {Error} When `properties` contains an unsupported value shape
+   *                 (e.g. nested object, nested array, `undefined`, `NaN`).
+   *                 The error names the bad key and is intended to surface
+   *                 developer mistakes in dev — production callers should
+   *                 never see this if types are honoured.
    *
    * @example Track a purchase
    * TGA.track("purchase", { amount: 49, currency: "USD", plan: "pro" });
+   *
+   * @example Track a multi-select answer (array property)
+   * TGA.track("onboarding_completed", {
+   *   role: "creator",
+   *   interest_set: ["vertical_to_horizontal", "unsure"],
+   * });
    *
    * @example Track a signup with no extra properties
    * TGA.track("signup");
    */
   track(eventName: string, properties?: EventProperties): void {
     if (!this.guardReady("track")) return;
+
+    if (properties !== undefined) validateProperties(properties, "track");
 
     const payload: TrackPayload = {
       api_key: this.apiKey,
@@ -239,13 +256,23 @@ export class TGAClient {
    * Use `identify()` for attributes that apply to the whole session, such as
    * the user's subscription plan, locale, or A/B test variant.
    *
-   * @param properties - Key-value pairs to merge into global session properties.
+   * @param properties - Key-value pairs to merge into global session
+   *                     properties. Values follow the same rules as
+   *                     {@link track}: scalars (string / number / boolean /
+   *                     null) or arrays of those scalars.
    *
-   * @example
+   * @throws {Error} When `properties` contains an unsupported value shape.
+   *                 The error names the bad key.
+   *
+   * @example Single A/B variant
    * TGA.identify({ plan: "pro", locale: "en-US", ab_variant: "B" });
    * TGA.track("purchase"); // => properties includes plan, locale, ab_variant
+   *
+   * @example Multi-bucket experiment membership (array property)
+   * TGA.identify({ ab_variants: ["A", "B"] });
    */
   identify(properties: EventProperties): void {
+    validateProperties(properties, "identify");
     this.globalProperties = { ...this.globalProperties, ...properties };
   }
 
