@@ -194,6 +194,7 @@ All options are passed as the second argument to `TGA.init()`.
 | `respectDNT`   | `boolean`                     | `true`  | Honour the browser's Do Not Track setting. |
 | `batch`        | `boolean \| BatchOptions`     | `false` | Buffer events before sending. See [Batching](#batching). |
 | `sessionId`    | `string`                      | —       | Override the auto-generated session ID. Rarely needed. |
+| `collectContext` | `boolean`                   | `true`  | Automatically collect visitor context (OS, browser, language, screen, timezone, device type) and include it as `$`-prefixed properties on every event. |
 
 ### `BatchOptions`
 
