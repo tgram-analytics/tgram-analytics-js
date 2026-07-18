@@ -40,6 +40,17 @@ Host `dist/index.iife.js` from your server (or a CDN) and load it on your page. 
 </script>
 ```
 
+The global `TGA` **is** the singleton — the same object you get from
+`import TGA from "tgram-analytics"` — so every method documented below
+(`TGA.init`, `TGA.track`, `TGA.pageview`, …) is called directly on it. The
+`TGAClient` class is also reachable as `TGA.TGAClient` if you need a second,
+isolated client instance.
+
+> **Loading it correctly:** load the file as a plain `<script>` (no
+> `type="module"`), and make sure your `TGA.init(...)` call runs *after* the SDK
+> script has executed. If `TGA` is undefined, the SDK script did not load —
+> check the URL and your network tab.
+
 ---
 
 ## Quick start
