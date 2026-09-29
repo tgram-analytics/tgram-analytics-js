@@ -4,6 +4,11 @@ All notable changes to `tgram-analytics` (the JS SDK) are documented in this fil
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.1] — 2026-09-29
+
+### Changed
+- Releases publish to npm through trusted publishing (OIDC) instead of a stored token. No code changes. 0.3.0 was tagged but not published to npm; 0.3.1 is the first npm release with tap heatmaps.
+
 ## [0.3.0] — 2026-09-29
 
 ### Added
