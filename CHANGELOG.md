@@ -7,11 +7,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 ## [0.3.0] — 2026-09-29
 
 ### Added
-- **Tap heatmaps (opt-in).** New `heatmaps` option in `TGA.init()`, `false` by default. When `true`, the SDK sends one request per pageview to `POST /api/v1/taps` with up to 50 taps and the maximum scroll depth. A tap holds its position (`x` as a fraction of the document width, `y` in CSS px from the page top, viewport px for fixed or sticky targets) and a short element label (`data-tga-label`, `aria-label`, `id`, or the tag plus up to 40 characters of visible text). The SDK never reads the value or the text of `input`, `textarea`, `select`, or contenteditable elements. Taps inside `data-tga-ignore` elements are not recorded. See [Tap heatmaps (opt-in)](./README.md#tap-heatmaps-opt-in).
+- **Tap heatmaps (opt-in).** New `heatmaps` option in `TGA.init()`, `false` by default. When `true`, the SDK sends one request per pageview to `POST /api/v1/taps` with up to 50 taps and the maximum scroll depth. A tap holds its position (`x` as a fraction of the document width, `y` in CSS px from the page top, viewport px for fixed or sticky targets) and a short element label (`data-tga-label`, `aria-label`, `id`, else the tag; links, buttons, labels, summaries, `role="button"` and `role="link"` add up to 40 characters of visible text from text nodes, skipping `script`, `style`, `noscript`, `template` and hidden elements). The SDK never reads the value or the text of `input`, `textarea`, `select`, or contenteditable elements. Taps inside `data-tga-ignore` elements are not recorded. `opt("out")` discards pending taps and scroll depth at once. See [Tap heatmaps (opt-in)](./README.md#tap-heatmaps-opt-in).
 - `npm run size`: prints the gzip size of each bundle and fails when `dist/index.js` is above 4,096 B. CI runs it after the build.
 
 ### Changed
-- README size claim corrected. The ESM build was 2,814 B gzip at 0.2.0, not "< 2 KB". It is 3,693 B gzip at 0.3.0.
+- README size claim corrected. The ESM build was 2,814 B gzip at 0.2.0, not "< 2 KB". It is 3,816 B gzip at 0.3.0.
 
 ### Unchanged
 - With `heatmaps` off (the default), the SDK sends the same requests as 0.2.0.

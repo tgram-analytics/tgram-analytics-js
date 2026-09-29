@@ -154,12 +154,14 @@ export interface TGAOptions {
    * When `true`, the SDK records where visitors tap or click on each page and
    * how far they scroll, for tap heatmaps. Off by default.
    *
-   * Per pageview the SDK sends at most one request to `POST /api/v1/taps` with
-   * up to 50 taps. A tap holds only its position (x as a fraction of the
-   * document width, y in CSS px from the page top) and a short element label
-   * (`data-tga-label`, `aria-label`, `id`, or the tag plus up to 40 characters
-   * of visible text). The request also holds the page path, the viewport
-   * bucket and width, and the maximum scroll depth.
+   * Per pageview the SDK sends one request to `POST /api/v1/taps` (one more
+   * if the page is hidden and then used again) with up to 50 taps in total.
+   * A tap holds only its position (x as a fraction of the document width,
+   * y in CSS px from the page top) and a short element label
+   * (`data-tga-label`, `aria-label`, `id`, else the tag; links, buttons and
+   * similar interactive elements add up to 40 characters of visible text).
+   * The request also holds the page path, the viewport bucket and width, and
+   * the maximum scroll depth.
    *
    * The SDK never reads the value or the text of `input`, `textarea`,
    * `select`, or contenteditable elements. Taps on elements inside a
