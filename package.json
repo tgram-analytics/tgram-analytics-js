@@ -1,6 +1,6 @@
 {
   "name": "tgram-analytics",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Lightweight, privacy-first JS/TS SDK for tgram-analytics",
   "keywords": [
     "analytics",
@@ -39,6 +39,7 @@
   "sideEffects": false,
   "scripts": {
     "build": "npm run clean && tsup",
+    "size": "node scripts/size.mjs",
     "dev": "tsup --watch",
     "test": "vitest run",
     "test:watch": "vitest",

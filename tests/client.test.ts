@@ -393,3 +393,36 @@ describe("TGAClient — unload flush", () => {
     expect(beaconMock).toHaveBeenCalledOnce();
   });
 });
+
+describe("TGAClient — tap heatmaps", () => {
+  it("init_with_heatmaps_installs_click_listener", () => {
+    const spy = vi.spyOn(document, "addEventListener");
+    const client = makeClient({ heatmaps: true });
+    expect(spy.mock.calls.some(([type]) => type === "click")).toBe(true);
+    spy.mockRestore();
+    client.reset();
+  });
+
+  it("init_without_heatmaps_installs_no_click_listener", () => {
+    const spy = vi.spyOn(document, "addEventListener");
+    makeClient();
+    expect(spy.mock.calls.some(([type]) => type === "click")).toBe(false);
+    spy.mockRestore();
+  });
+
+  it("reset_removes_heatmap_listeners", () => {
+    const client = makeClient({ heatmaps: true });
+    const spy = vi.spyOn(document, "removeEventListener");
+    client.reset();
+    expect(spy.mock.calls.some(([type]) => type === "click")).toBe(true);
+    spy.mockRestore();
+
+    // A click after reset is not recorded, even when the page is then hidden.
+    document.body.innerHTML = "<button>b</button>";
+    document.querySelector("button")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    window.dispatchEvent(new Event("pagehide"));
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(beaconMock).not.toHaveBeenCalled();
+    document.body.innerHTML = "";
+  });
+});

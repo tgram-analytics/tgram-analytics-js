@@ -13,6 +13,7 @@
  */
 
 import { collectContext } from "./context.js";
+import { type HeatmapController, installHeatmap } from "./heatmap.js";
 import { EventQueue, type QueueConfig } from "./queue.js";
 import { clearSessionId, getOrCreateSessionId } from "./session.js";
 import { installSpaListeners } from "./spa.js";
@@ -30,6 +31,7 @@ export class TGAClient {
   private globalProperties: EventProperties = {};
   private queue: EventQueue | null = null;
   private teardownSpa: (() => void) | null = null;
+  private heatmap: HeatmapController | null = null;
 
   // ── Lifecycle ──────────────────────────────────────────────────────────────
 
@@ -46,6 +48,7 @@ export class TGAClient {
    *    (when `autoPageview` is `true`, which is the default).
    * 6. Installs `visibilitychange` / `pagehide` listeners to flush any
    *    pending queue when the user leaves the page.
+   * 7. Installs the tap heatmap listeners (only when `heatmaps` is `true`).
    *
    * Calling `init()` a second time logs a warning and does nothing — it is
    * not an error. Call {@link reset} first if you need a clean slate.
@@ -119,6 +122,15 @@ export class TGAClient {
       this.queue = new EventQueue(this.serverUrl, cfg);
     }
 
+    // ── Tap heatmaps (opt-in) ──────────────────────────────────────────────
+    if (options.heatmaps && typeof document !== "undefined") {
+      this.heatmap = installHeatmap((e, p) => this.dispatch(e, p), {
+        apiKey,
+        sessionId: this.sessionId,
+        on: () => !this.optedOut,
+      });
+    }
+
     // ── UTM parameters ─────────────────────────────────────────────────────
     // Capture acquisition channel data from the landing-page URL.
     const utms = extractUtmParams();
@@ -146,11 +158,17 @@ export class TGAClient {
     // Ensure queued events are sent before the browser discards the page.
     if (typeof document !== "undefined") {
       document.addEventListener("visibilitychange", () => {
-        if (document.visibilityState === "hidden") void this.flush();
+        if (document.visibilityState === "hidden") {
+          this.heatmap?.flush();
+          void this.flush();
+        }
       });
     }
     if (typeof window !== "undefined") {
-      window.addEventListener("pagehide", () => void this.flush());
+      window.addEventListener("pagehide", () => {
+        this.heatmap?.flush();
+        void this.flush();
+      });
     }
   }
 
@@ -225,11 +243,18 @@ export class TGAClient {
    * TGA.pageview("/pricing", "https://twitter.com");
    */
   pageview(url?: string, referrer?: string): void {
-    if (!this.guardReady("pageview")) return;
+    if (!this.guardReady("pageview")) {
+      // Keep tap paths in step with navigation even while opted out.
+      this.heatmap?.rotate(url ?? location.pathname + location.search);
+      return;
+    }
 
     const resolvedUrl =
       url ??
       (typeof window !== "undefined" ? window.location.pathname + window.location.search : "");
+
+    // Send the previous page's taps before this pageview, then start a new page.
+    this.heatmap?.rotate(resolvedUrl);
 
     const resolvedReferrer =
       referrer ?? (typeof document !== "undefined" ? document.referrer || null : null);
@@ -344,6 +369,8 @@ export class TGAClient {
     // init() call can install them fresh without duplicating them.
     this.teardownSpa?.();
     this.teardownSpa = null;
+    this.heatmap?.teardown();
+    this.heatmap = null;
 
     this.initialized = false;
     clearSessionId();
