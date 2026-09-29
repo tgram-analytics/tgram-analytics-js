@@ -450,3 +450,51 @@ describe("opt-out and navigation", () => {
     expect(tapFetchBodies()).toHaveLength(0);
   });
 });
+
+describe("review follow-up", () => {
+  it("script_style_and_hidden_text_never_reach_the_label", () => {
+    html(`
+      <button><script>var token = "abc123";</script><style>.x{}</style>Save<span hidden>secret</span><span aria-hidden="true">icon</span> now</button>
+    `);
+    const label = labelFor($("button"));
+    expect(label).toBe('button "Save now"');
+    expect(label).not.toContain("token");
+    expect(label).not.toContain("secret");
+  });
+
+  it("non_interactive_element_gives_tag_only", () => {
+    html("<p>Email: leo@example.com</p><div><span>Some private text</span></div>");
+    expect(labelFor($("p"))).toBe("p");
+    expect(labelFor($("span"))).toBe("span");
+  });
+
+  it("role_link_gives_text", () => {
+    html('<div role="link"><span>Open album</span></div>');
+    expect(labelFor($("span"))).toBe('div "Open album"');
+  });
+
+  it("opt_out_discards_pending_taps_and_scroll_at_once", () => {
+    makeClient();
+    html("<button>b</button>");
+    click($("button"));
+    Object.defineProperty(globalThis, "scrollY", { value: 900, configurable: true });
+    window.dispatchEvent(new Event("scroll"));
+    clients[0].opt("out");
+    clients[0].opt("in");
+    hidePage();
+    clients[0].pageview("/next");
+    expect(beaconMock).not.toHaveBeenCalled();
+    expect(tapFetchBodies()).toHaveLength(0);
+  });
+
+  it("scroll_depth_uses_page_height_at_flush_time", () => {
+    stubDoc(1000, 1000);
+    Object.defineProperty(globalThis, "innerHeight", { value: 500, configurable: true });
+    makeClient();
+    Object.defineProperty(globalThis, "scrollY", { value: 500, configurable: true });
+    window.dispatchEvent(new Event("scroll")); // bottom = 1000 px
+    stubDoc(1000, 4000); // the page grew after the scroll
+    clients[0].pageview("/next");
+    expect(tapFetchBodies()[0].scroll).toBe(0.25);
+  });
+});

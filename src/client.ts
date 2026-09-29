@@ -307,7 +307,8 @@ export class TGAClient {
    * Opts the current user in or out of analytics.
    *
    * - Opting **out** immediately flushes any pending queue and silently
-   *   suppresses all future `track()` and `pageview()` calls.
+   *   suppresses all future `track()` and `pageview()` calls. Pending
+   *   heatmap taps and scroll depth are discarded at once, never sent.
    * - Opting **in** re-enables tracking for the rest of the page session.
    *
    * **The opt-out state is not persisted.** If you want persistence across
@@ -323,6 +324,7 @@ export class TGAClient {
    */
   opt(status: "in" | "out"): void {
     if (status === "out") {
+      this.heatmap?.discard(); // pending taps and scroll depth are never sent
       void this.flush(); // drain the queue before silencing further sends
       this.optedOut = true;
     } else {

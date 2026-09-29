@@ -3,7 +3,7 @@
 Lightweight, privacy-first analytics SDK for [tgram-analytics](https://github.com/tgram-analytics/server).
 
 - **Zero dependencies** — only browser APIs
-- **Under 4 KB gzipped** — the ESM build is 3,693 B gzip at 0.3.0; CI fails the build above 4,096 B
+- **Under 4 KB gzipped** — the ESM build is 3,816 B gzip at 0.3.0; CI fails the build above 4,096 B
 - **TypeScript-first** — full type definitions included, no `@types` package needed
 - **Privacy-friendly** — no cookies, no fingerprinting, respects Do Not Track
 - **SPA-ready** — auto-tracks route changes with React Router, Vue Router, Next.js, etc.
@@ -288,19 +288,21 @@ The SDK sends **one request per pageview** to `POST /api/v1/taps`. It sends it w
 | `taps[].x` | Horizontal position as a fraction of the document width, 0 to 1, 3 decimals. |
 | `taps[].y` | Vertical position in CSS px from the top of the page. For a tap inside a `position: fixed` or `sticky` element (for example a sticky header), it is the position in the viewport. |
 | `taps[].el` | Element label, at most 80 characters. See below. |
-| `scroll`   | Maximum scroll depth, 0 to 1 (bottom of the viewport ÷ page height). Sent once per pageview. Left out when the visitor did not scroll. |
+| `scroll`   | Maximum scroll depth, 0 to 1: the lowest viewport bottom reached (`scrollY + innerHeight`, in px) ÷ the page height when the request is sent. Sent once per pageview. Left out when the visitor did not scroll. |
 | `session_id` | The server uses it for the request only. The server does not store it with the taps. |
 
 A tap has no timestamp, no text that the visitor typed, and no other event properties.
 
 ### Element labels
 
-The SDK finds the nearest link, button, form field, `label`, `summary`, `[role="button"]`, or element with `data-tga-label`, `aria-label`, or `id` (the tapped element or one of its ancestors). The label is the first of:
+The SDK finds the nearest link, button, form field, `label`, `summary`, `[role="button"]`, `[role="link"]`, or element with `data-tga-label`, `aria-label`, or `id` (the tapped element or one of its ancestors). If there is none, it uses the tapped element. The label is the first of:
 
 1. its `data-tga-label` attribute,
 2. its `aria-label` attribute,
 3. `tag#id`, for example `div#hero`,
-4. the tag plus up to 40 characters of its visible text, with whitespace collapsed, for example `button "Browse albums"`.
+4. the tag name, for example `p` or `img`. For an `input` it is `input[type=…]`, for example `input[type=email]`.
+
+Only for `a`, `button`, `label`, `summary`, `[role="button"]`, and `[role="link"]` does rule 4 add up to 40 characters of visible text, with whitespace collapsed, for example `button "Browse albums"`. Any other element gives its tag name only: a tap on `<p>Email: leo@example.com</p>` gives `p`. Visible text comes from text nodes only. Text inside `script`, `style`, `noscript`, `template`, `[hidden]`, and `[aria-hidden="true"]` is skipped.
 
 Set `data-tga-label` to give an element a stable name:
 
@@ -320,7 +322,7 @@ Set `data-tga-label` to give an element a stable name:
 </section>
 ```
 
-`TGA.opt("out")` and Do Not Track (with `respectDNT: true`) stop tap recording too.
+`TGA.opt("out")` stops tap recording and discards the pending taps and scroll depth of the current page at once; they are never sent, also after `TGA.opt("in")`. Do Not Track (with `respectDNT: true`) stops tap recording too.
 
 ---
 

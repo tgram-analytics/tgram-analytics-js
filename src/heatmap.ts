@@ -29,14 +29,18 @@ export const TAPS_ENDPOINT = "/api/v1/taps";
 
 const MAX_TAPS = 50;
 
+/** Interactive elements: the only ones whose visible text can be a label. */
+const TEXTUAL = 'a,button,label,summary,[role="button"],[role="link"]';
+
 /** Elements that make a useful tap label, nearest ancestor wins. */
-const LABELLED =
-  '[data-tga-label],[aria-label],[id],a,button,input,select,textarea,label,summary,[role="button"]';
+const LABELLED = `[data-tga-label],[aria-label],[id],input,select,textarea,${TEXTUAL}`;
 
 /** Elements whose content may hold what the visitor typed. */
-const FIELD = /^(input|textarea|select)$/;
 const EDITABLE = '[contenteditable]:not([contenteditable="false"])';
 const NO_TEXT = `input,textarea,select,${EDITABLE}`;
+
+/** Text inside these is not visible text. */
+const HIDDEN = 'script,style,noscript,template,[hidden],[aria-hidden="true"]';
 
 /** Controls one installed collector. */
 export interface HeatmapController {
@@ -46,6 +50,8 @@ export interface HeatmapController {
   flush(): void;
   /** Sends pending taps, then removes all listeners. */
   teardown(): void;
+  /** Discards pending taps and the pending scroll depth without sending. */
+  discard(): void;
 }
 
 /** Viewport bucket from a width in CSS px: < 768 mobile, < 1024 tablet. */
@@ -57,15 +63,17 @@ export function viewportBucket(width: number): TapsPayload["viewport"] {
  * Label for a tapped element.
  *
  * The labelled element is the nearest ancestor (or self) that is a link,
- * button, form field, label, summary, `role="button"`, or has
+ * button, form field, label, summary, `role="button"`, `role="link"`, or has
  * `data-tga-label`, `aria-label`, or `id`. Its label is, in order:
- * `data-tga-label`, `aria-label`, `tag#id`, else the tag plus up to 40
- * characters of its visible text (`button "Buy now"`).
+ * `data-tga-label`, `aria-label`, `tag#id`, else the tag. Only for a link,
+ * button, label, summary, `role="button"`, or `role="link"` is the tag
+ * followed by up to 40 characters of its visible text (`button "Buy now"`).
  *
- * Form fields and editable content never give text: an `input` gives
- * `input[type=…]`, a `textarea`, `select`, or editable element gives its tag.
- * The text is also skipped when the element contains a form field or an
- * editable element. The result is at most 80 characters.
+ * Visible text comes from text nodes only, skipping `script`, `style`,
+ * `noscript`, `template`, `[hidden]`, and `[aria-hidden="true"]`. No text is
+ * read when the tap is inside an editable element, or when the element
+ * contains a form field or an editable element. An `input` gives
+ * `input[type=…]`. The result is at most 80 characters.
  */
 export function labelFor(target: Element): string {
   const el = target.closest(LABELLED) || target;
@@ -75,8 +83,14 @@ export function labelFor(target: Element): string {
     el.getAttribute("data-tga-label") || el.getAttribute("aria-label") || (id && `${tag}#${id}`);
   if (!label) {
     label = tag === "input" ? `input[type=${(el as HTMLInputElement).type}]` : tag;
-    if (!FIELD.test(tag) && !target.closest(EDITABLE) && !el.querySelector(NO_TEXT)) {
-      const text = (el.textContent || "").replace(/\s+/g, " ").trim().slice(0, 40);
+    if (el.matches(TEXTUAL) && !target.closest(EDITABLE) && !el.querySelector(NO_TEXT)) {
+      const walk = document.createTreeWalker(el, 4); // NodeFilter.SHOW_TEXT
+      let text = "";
+      while (text.length < 200 && walk.nextNode()) {
+        const node = walk.currentNode;
+        if (!node.parentElement?.closest(HIDDEN)) text += ` ${node.nodeValue}`;
+      }
+      text = text.replace(/\s+/g, " ").trim().slice(0, 40);
       if (text) label += ` "${text}"`;
     }
   }
@@ -107,11 +121,12 @@ export function installHeatmap(
   let path = location.pathname + location.search;
   let taps: TapPoint[] = [];
   let count = 0;
-  let depth = 0;
+  let bottom = 0; // max of scrollY + innerHeight, in CSS px
   let scrollSent = false;
 
   const flush = (): void => {
-    const scroll = scrollSent ? 0 : depth;
+    const h = root.scrollHeight;
+    const scroll = scrollSent || !h ? 0 : Math.min(1, Math.round((bottom / h) * 100) / 100);
     if (ctx.on() && (taps.length || scroll)) {
       const w = innerWidth;
       const payload: TapsPayload = {
@@ -145,10 +160,7 @@ export function installHeatmap(
   };
 
   const onScroll = (): void => {
-    const h = root.scrollHeight;
-    if (ctx.on() && h) {
-      depth = Math.max(depth, Math.min(1, Math.round(((scrollY + innerHeight) / h) * 100) / 100));
-    }
+    if (ctx.on()) bottom = Math.max(bottom, scrollY + innerHeight);
   };
 
   const opts = { capture: true, passive: true };
@@ -159,10 +171,14 @@ export function installHeatmap(
     rotate(next) {
       flush();
       path = next;
-      count = depth = 0;
+      count = bottom = 0;
       scrollSent = false;
     },
     flush,
+    discard() {
+      taps = [];
+      bottom = 0;
+    },
     teardown() {
       flush();
       document.removeEventListener("click", onClick, opts);
