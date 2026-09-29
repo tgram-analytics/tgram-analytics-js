@@ -3,7 +3,7 @@
 Lightweight, privacy-first analytics SDK for [tgram-analytics](https://github.com/tgram-analytics/server).
 
 - **Zero dependencies** — only browser APIs
-- **< 2 KB gzipped** — won't slow your page down
+- **Under 4 KB gzipped** — the ESM build is 3,693 B gzip at 0.3.0; CI fails the build above 4,096 B
 - **TypeScript-first** — full type definitions included, no `@types` package needed
 - **Privacy-friendly** — no cookies, no fingerprinting, respects Do Not Track
 - **SPA-ready** — auto-tracks route changes with React Router, Vue Router, Next.js, etc.
@@ -206,6 +206,7 @@ All options are passed as the second argument to `TGA.init()`.
 | `batch`        | `boolean \| BatchOptions`     | `false` | Buffer events before sending. See [Batching](#batching). |
 | `sessionId`    | `string`                      | —       | Override the auto-generated session ID. Rarely needed. |
 | `collectContext` | `boolean`                   | `true`  | Automatically collect visitor context (OS, browser, language, screen, timezone, device type) and include it as `$`-prefixed properties on every event. |
+| `heatmaps`     | `boolean`                     | `false` | Record tap positions and scroll depth for tap heatmaps. See [Tap heatmaps (opt-in)](#tap-heatmaps-opt-in). |
 
 ### `BatchOptions`
 
@@ -246,6 +247,80 @@ The queue flushes automatically when:
 - `maxWait` milliseconds have passed since the first event in the batch.
 - The user navigates away from the page (`visibilitychange`, `pagehide`).
 - You call `TGA.flush()` manually.
+
+---
+
+## Tap heatmaps (opt-in)
+
+The SDK can record where visitors tap or click on each page, and how far they scroll. The server uses this data to show which elements get the most taps on a page. It is **off by default**. With it off, the SDK sends nothing more than before.
+
+```ts
+TGA.init("proj_abc123", {
+  serverUrl: "https://analytics.example.com",
+  heatmaps: true,
+});
+```
+
+Needs a server version that has the `POST /api/v1/taps` endpoint.
+
+### What is sent
+
+The SDK sends **one request per pageview** to `POST /api/v1/taps`. It sends it when the visitor goes to another route, when the page is hidden, or when the page reaches 50 taps. Example body:
+
+```json
+{
+  "api_key": "proj_abc123",
+  "session_id": "550e8400-e29b-41d4-a716-446655440000",
+  "path": "/browse?sort=new",
+  "viewport": "mobile",
+  "vw": 390,
+  "taps": [{ "x": 0.512, "y": 1330, "el": "button \"Browse albums\"" }],
+  "scroll": 0.62
+}
+```
+
+| Field      | Content |
+|------------|---------|
+| `path`     | `location.pathname + location.search`, the same string as the pageview URL. The hash is not included. |
+| `viewport` | `"mobile"` (`innerWidth` < 768), `"tablet"` (< 1024), or `"desktop"`. |
+| `vw`       | `window.innerWidth` in CSS px. |
+| `taps`     | 0 to 50 taps. At most 50 taps per pageview; later taps on the same page are dropped. |
+| `taps[].x` | Horizontal position as a fraction of the document width, 0 to 1, 3 decimals. |
+| `taps[].y` | Vertical position in CSS px from the top of the page. For a tap inside a `position: fixed` or `sticky` element (for example a sticky header), it is the position in the viewport. |
+| `taps[].el` | Element label, at most 80 characters. See below. |
+| `scroll`   | Maximum scroll depth, 0 to 1 (bottom of the viewport ÷ page height). Sent once per pageview. Left out when the visitor did not scroll. |
+| `session_id` | The server uses it for the request only. The server does not store it with the taps. |
+
+A tap has no timestamp, no text that the visitor typed, and no other event properties.
+
+### Element labels
+
+The SDK finds the nearest link, button, form field, `label`, `summary`, `[role="button"]`, or element with `data-tga-label`, `aria-label`, or `id` (the tapped element or one of its ancestors). The label is the first of:
+
+1. its `data-tga-label` attribute,
+2. its `aria-label` attribute,
+3. `tag#id`, for example `div#hero`,
+4. the tag plus up to 40 characters of its visible text, with whitespace collapsed, for example `button "Browse albums"`.
+
+Set `data-tga-label` to give an element a stable name:
+
+```html
+<button data-tga-label="hero-cta">Start free trial</button>
+```
+
+### What is never read
+
+- The SDK never reads the **value or the text** of `input`, `textarea`, `select`, or contenteditable elements. For these, rule 4 gives the tag only: `input[type=email]`, `textarea`, `select`. Rules 1 to 3 still apply, because they read attributes that you write, not what the visitor types.
+- The SDK does not read visible text when the tap is inside a contenteditable element, or when the labelled element contains a form field or a contenteditable element.
+- Taps on an element with `data-tga-ignore`, or inside one, are **not recorded**. Put it on areas that show personal data:
+
+```html
+<section data-tga-ignore>
+  <!-- account details: no taps recorded here -->
+</section>
+```
+
+`TGA.opt("out")` and Do Not Track (with `respectDNT: true`) stop tap recording too.
 
 ---
 
@@ -365,6 +440,7 @@ npm install
 | Command           | Description |
 |-------------------|-------------|
 | `npm run build`   | Build all output formats to `dist/` |
+| `npm run size`    | Print gzip sizes of the bundles; fails when `dist/index.js` is above 4,096 B |
 | `npm test`        | Run the test suite |
 | `npm run typecheck` | Check TypeScript types (no emit) |
 | `npm run check`   | Lint + format with Biome (auto-fixes) |
@@ -377,6 +453,7 @@ npm install
 2. Run `npm test` — all tests must pass.
 3. Run `npm run typecheck` — zero TypeScript errors.
 4. Run `npm run build` — the build must succeed.
+5. Run `npm run size` — `dist/index.js` must stay at or below 4,096 B gzip.
 
 ---
 

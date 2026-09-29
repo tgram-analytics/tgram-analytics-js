@@ -149,6 +149,24 @@ export interface TGAOptions {
    * @default true
    */
   collectContext?: boolean;
+
+  /**
+   * When `true`, the SDK records where visitors tap or click on each page and
+   * how far they scroll, for tap heatmaps. Off by default.
+   *
+   * Per pageview the SDK sends at most one request to `POST /api/v1/taps` with
+   * up to 50 taps. A tap holds only its position (x as a fraction of the
+   * document width, y in CSS px from the page top) and a short element label
+   * (`data-tga-label`, `aria-label`, `id`, or the tag plus up to 40 characters
+   * of visible text). The request also holds the page path, the viewport
+   * bucket and width, and the maximum scroll depth.
+   *
+   * The SDK never reads the value or the text of `input`, `textarea`,
+   * `select`, or contenteditable elements. Taps on elements inside a
+   * `data-tga-ignore` element are not recorded.
+   * @default false
+   */
+  heatmaps?: boolean;
 }
 
 // ── Internal payload shapes ──────────────────────────────────────────────────
@@ -168,3 +186,37 @@ export type TrackPayload = components["schemas"]["TrackEventRequest"];
  * @internal
  */
 export type PageviewPayload = components["schemas"]["PageviewRequest"];
+
+/**
+ * Request body sent to `POST /api/v1/taps` (only when `heatmaps: true`).
+ * One request per pageview.
+ * @internal
+ */
+export interface TapsPayload {
+  api_key: string;
+  /** Used by the server for the request only; not stored with the taps. */
+  session_id: string;
+  /** `location.pathname + location.search`, the same string as the pageview URL. */
+  path: string;
+  /** From `window.innerWidth`: < 768 mobile, < 1024 tablet, else desktop. */
+  viewport: "mobile" | "tablet" | "desktop";
+  /** `window.innerWidth` in CSS px. */
+  vw: number;
+  /** 0 to 50 taps. */
+  taps: TapPoint[];
+  /** Maximum scroll depth, 0..1. Sent once per pageview. */
+  scroll?: number;
+}
+
+/**
+ * One tap in a {@link TapsPayload}.
+ * @internal
+ */
+export interface TapPoint {
+  /** Fraction of the document width, 0..1, 3 decimals. */
+  x: number;
+  /** CSS px from the document top (viewport px for fixed or sticky targets). */
+  y: number;
+  /** Element label, at most 80 characters. */
+  el?: string;
+}

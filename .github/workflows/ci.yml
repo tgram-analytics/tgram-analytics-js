@@ -36,3 +36,6 @@ jobs:
 
       - name: Build all bundles
         run: npm run build
+
+      - name: Bundle size (fails above 4096 B gzip for dist/index.js)
+        run: npm run size

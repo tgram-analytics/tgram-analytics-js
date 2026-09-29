@@ -2,7 +2,7 @@
  * tgram-analytics JS SDK
  *
  * Lightweight, privacy-first analytics for websites and SPAs.
- * Zero dependencies. < 2 KB gzipped.
+ * Zero dependencies. Under 4 KB gzipped (ESM build).
  *
  * ---
  *
