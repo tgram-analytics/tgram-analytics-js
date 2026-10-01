@@ -207,6 +207,7 @@ All options are passed as the second argument to `TGA.init()`.
 | `sessionId`    | `string`                      | —       | Override the auto-generated session ID. Rarely needed. |
 | `collectContext` | `boolean`                   | `true`  | Automatically collect visitor context (OS, browser, language, screen, timezone, device type) and include it as `$`-prefixed properties on every event. |
 | `heatmaps`     | `boolean`                     | `false` | Record tap positions and scroll depth for tap heatmaps. See [Tap heatmaps (opt-in)](#tap-heatmaps-opt-in). |
+| `test`         | `boolean`                     | `false` | Mark every request as a test event. See [Test mode](#test-mode). |
 
 ### `BatchOptions`
 
@@ -247,6 +248,32 @@ The queue flushes automatically when:
 - `maxWait` milliseconds have passed since the first event in the batch.
 - The user navigates away from the page (`visibilitychange`, `pagehide`).
 - You call `TGA.flush()` manually.
+
+---
+
+## Test mode
+
+Set `test: true` to mark every request (track, pageview, taps) as a test event:
+
+```ts
+TGA.init("proj_abc123", {
+  serverUrl: "https://analytics.example.com",
+  test: true,
+});
+```
+
+The server stores test events but leaves them out of analytics, reports, digests, funnels, exports and alerts. Recent activity in the bot, `/doctor`, and the MCP `recent_events` and `verify_integration` tools still show them, marked 🧪. Test taps are not stored.
+
+You do not need this option for local development: the server marks events as test automatically when the page origin or URL is `localhost`, `*.localhost`, `127.0.0.0/8`, `::1` or `0.0.0.0`. Use it for other non-production builds, such as a staging deploy. For example, with Vite:
+
+```ts
+TGA.init("proj_abc123", {
+  serverUrl: "https://analytics.example.com",
+  test: import.meta.env.MODE === "staging",
+});
+```
+
+When `test` is `false` (the default), the SDK does not send the field. Servers without test-event support ignore the field and store the events as normal events.
 
 ---
 

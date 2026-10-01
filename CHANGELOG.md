@@ -4,6 +4,11 @@ All notable changes to `tgram-analytics` (the JS SDK) are documented in this fil
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **Test mode.** New `test` option in `TGA.init()`, `false` by default. When `true`, every request body (track, pageview, taps) includes `"test": true`. The server stores test events but leaves them out of analytics; recent activity still shows them, marked as test. Test taps are not stored. When `false`, the field is not sent. Servers without test-event support ignore the field. See [Test mode](./README.md#test-mode).
+
 ## [0.3.1] — 2026-09-29
 
 ### Changed

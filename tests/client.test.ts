@@ -426,3 +426,65 @@ describe("TGAClient — tap heatmaps", () => {
     document.body.innerHTML = "";
   });
 });
+
+describe("TGAClient — test mode", () => {
+  /** All JSON bodies sent with fetch, in order. */
+  function fetchBodies(): Record<string, unknown>[] {
+    return fetchMock.mock.calls.map(
+      ([, init]) => JSON.parse((init as RequestInit).body as string) as Record<string, unknown>,
+    );
+  }
+
+  it("omits the test field by default", () => {
+    const client = makeClient({ autoPageview: true });
+    client.track("signup");
+    const bodies = fetchBodies();
+    expect(bodies).toHaveLength(2);
+    for (const body of bodies) expect(body).not.toHaveProperty("test");
+    client.reset();
+  });
+
+  it("omits the test field when test is false", () => {
+    const client = makeClient({ autoPageview: true, test: false });
+    client.track("signup");
+    const bodies = fetchBodies();
+    expect(bodies).toHaveLength(2);
+    for (const body of bodies) expect(body).not.toHaveProperty("test");
+    client.reset();
+  });
+
+  it("adds test: true to track and pageview bodies when test is true", () => {
+    const client = makeClient({ autoPageview: true, test: true });
+    client.track("signup", { plan: "pro" });
+    const urls = fetchMock.mock.calls.map(([url]) => url);
+    expect(urls).toEqual([`${SERVER}/api/v1/pageview`, `${SERVER}/api/v1/track`]);
+    const [pageview, track] = fetchBodies();
+    expect(pageview.test).toBe(true);
+    expect(track.test).toBe(true);
+    expect(track.event_name).toBe("signup");
+    expect((track.properties as Record<string, unknown>).plan).toBe("pro");
+    expect(track.properties).not.toHaveProperty("test");
+    client.reset();
+  });
+
+  it("adds test: true to batched bodies", async () => {
+    const client = makeClient({ test: true, batch: { maxSize: 100, maxWait: 60_000 } });
+    client.track("event-1");
+    client.pageview("/x");
+    expect(fetchMock).not.toHaveBeenCalled();
+    await client.flush();
+    const bodies = fetchBodies();
+    expect(bodies).toHaveLength(2);
+    for (const body of bodies) expect(body.test).toBe(true);
+    client.reset();
+  });
+
+  it("reset clears test mode", () => {
+    const client = makeClient({ test: true });
+    client.reset();
+    client.init(API_KEY, { serverUrl: SERVER, autoPageview: false });
+    client.track("after");
+    expect(lastFetchBody()).not.toHaveProperty("test");
+    client.reset();
+  });
+});
