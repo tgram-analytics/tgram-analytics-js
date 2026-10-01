@@ -169,6 +169,19 @@ export interface TGAOptions {
    * @default false
    */
   heatmaps?: boolean;
+
+  /**
+   * When `true`, every request (track, pageview, taps) carries `"test": true`.
+   * The server stores test events but leaves them out of analytics, reports
+   * and alerts; recent activity still shows them, marked as test. Test taps
+   * are not stored.
+   *
+   * Events sent from localhost are marked as test by the server
+   * automatically, so this option is for other non-production builds, such
+   * as staging. When `false` (the default), the field is not sent.
+   * @default false
+   */
+  test?: boolean;
 }
 
 // ── Internal payload shapes ──────────────────────────────────────────────────

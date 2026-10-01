@@ -108,6 +108,31 @@ describe("heatmaps opt-in", () => {
   });
 });
 
+describe("test mode", () => {
+  it("taps_body_has_test_true_when_test_is_on", async () => {
+    makeClient({ test: true });
+    html("<button>b</button>");
+    click($("button"));
+    window.dispatchEvent(new Event("pagehide"));
+    click($("button"));
+    hidePage();
+    const [fetched] = tapFetchBodies();
+    const [beaconed] = await tapBeaconBodies();
+    expect(fetched).toMatchObject({ test: true, path: "/start" });
+    expect(beaconed).toMatchObject({ test: true, path: "/start" });
+  });
+
+  it("taps_body_omits_test_by_default", () => {
+    makeClient();
+    html("<button>b</button>");
+    click($("button"));
+    window.dispatchEvent(new Event("pagehide"));
+    const [body] = tapFetchBodies();
+    expect(body).toBeDefined();
+    expect(body).not.toHaveProperty("test");
+  });
+});
+
 describe("labels", () => {
   it("label_prefers_data_tga_label", () => {
     html(`<button data-tga-label="cta" aria-label="Aria" id="b1">Text</button>`);

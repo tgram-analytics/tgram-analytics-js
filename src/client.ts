@@ -28,6 +28,7 @@ export class TGAClient {
   private sessionId = "";
   private initialized = false;
   private optedOut = false;
+  private test = false;
   private globalProperties: EventProperties = {};
   private queue: EventQueue | null = null;
   private teardownSpa: (() => void) | null = null;
@@ -102,6 +103,7 @@ export class TGAClient {
       );
     }
     this.sessionId = getOrCreateSessionId(options.sessionId);
+    this.test = options.test === true;
     this.initialized = true;
 
     // ── Privacy: Do Not Track ──────────────────────────────────────────────
@@ -379,6 +381,7 @@ export class TGAClient {
     this.sessionId = getOrCreateSessionId();
     this.globalProperties = {};
     this.optedOut = false;
+    this.test = false;
     this.queue = null;
   }
 
@@ -406,16 +409,18 @@ export class TGAClient {
 
   /**
    * Routes a payload to either the batching queue or the transport layer,
-   * depending on whether batching is enabled.
+   * depending on whether batching is enabled. In test mode, adds
+   * `test: true` to the body.
    *
    * @param endpoint - API path relative to `serverUrl` (e.g. `"/api/v1/track"`).
-   * @param payload  - JSON-serialisable request body.
+   * @param payload  - JSON-serialisable request body (a plain object).
    */
-  private dispatch(endpoint: string, payload: unknown): void {
+  private dispatch(endpoint: string, payload: object): void {
+    const body = this.test ? { ...payload, test: true } : payload;
     if (this.queue) {
-      this.queue.push(endpoint, payload);
+      this.queue.push(endpoint, body);
     } else {
-      send(`${this.serverUrl}${endpoint}`, payload);
+      send(`${this.serverUrl}${endpoint}`, body);
     }
   }
 }
